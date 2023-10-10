@@ -45,6 +45,7 @@ dependencies = [
   "sdmx1 >= 2.13.1",
   "tqdm",
   "pyxlsb >= 1.0.10",
+  "scikit-learn"
 ]
 
 [project.urls]
@@ -105,7 +106,6 @@ module = [
   "jpype",
   "memory_profiler",
   "scipy",
-  "sklearn",
 ]
 ignore_missing_imports = true
 
