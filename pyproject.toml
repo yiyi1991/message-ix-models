@@ -46,7 +46,7 @@ dependencies = [
   "tqdm",
   "pyxlsb >= 1.0.10",
   "scikit-learn",
-  "nomenclature",
+  "nomenclature-iamc",
 ]
 
 [project.urls]
@@ -107,7 +107,7 @@ module = [
   "jpype",
   "memory_profiler",
   "scipy",
-  "nomenclature",
+  "nomenclature-iamc",
 ]
 ignore_missing_imports = true
 
