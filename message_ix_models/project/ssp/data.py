@@ -89,8 +89,7 @@ class SSPOriginal(ExoDataSource):
         # Determine the date based on the model ID. There is a 1:1 correspondence.
         self.date = self.model_date[self.model]
 
-        if len(_kw):
-            raise ValueError(_kw)
+        super().__init__(source, _kw)
 
     def __call__(self):
         # Assemble a query string
@@ -154,8 +153,7 @@ class SSPUpdate(ExoDataSource):
         # Store the model ID, if any
         self.model = _kw.pop("model", None)
 
-        if len(_kw):
-            raise ValueError(_kw)
+        super().__init__(source, _kw)
 
     def __call__(self):
         # Assemble a query string
