@@ -46,7 +46,6 @@ dependencies = [
   "sdmx1 >= 2.13.1",
   "tqdm",
   "pyxlsb >= 1.0.10",
-  "scikit-learn",
   "nomenclature-iamc",
 ]
 
