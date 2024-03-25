@@ -105,6 +105,16 @@ SOURCE = {
         ),
         processor=UnpackSnapshot(),
     ),
+    "snapshot-1": dict(
+        pooch_args=dict(
+            base_url="doi:10.5281/zenodo.10514052",
+            registry={
+                "MESSAGEix-GLOBIOM_1.1_R11_no-policy_baseline.xlsx": (
+                    "md5:e7c0c562843e85c643ad9d84fecef979"
+                ),
+            },
+        ),
+    ),
 }
 
 
