@@ -74,7 +74,7 @@ class UnpackSnapshot:
 
 
 #: Supported remote sources of data.
-SOURCE = {
+SOURCE: dict[str, dict] = {
     "PRIMAP": dict(
         pooch_args=dict(
             base_url="ftp://datapub.gfz-potsdam.de/download/10.5880.PIK.2019.001/",
