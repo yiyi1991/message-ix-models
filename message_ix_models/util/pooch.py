@@ -118,7 +118,9 @@ SOURCE: dict[str, dict] = {
 }
 
 
-def fetch(pooch_args, **fetch_kwargs) -> Tuple[Path, ...]:
+def fetch(
+    pooch_args: dict, *, extra_cache_path: str, **fetch_kwargs
+) -> Tuple[Path, ...]:
     """Create a :class:`~pooch.Pooch` instance and fetch a single file.
 
     Files are stored under the directory identified by :meth:`.Context.get_cache_path`,
@@ -140,7 +142,12 @@ def fetch(pooch_args, **fetch_kwargs) -> Tuple[Path, ...]:
     --------
     :func:`.snapshot.load`
     """
-    pooch_args.setdefault("path", Context.get_instance(-1).get_cache_path())
+    path = (
+        Path(extra_cache_path) / Context.get_instance(-1).get_cache_path()
+        if extra_cache_path
+        else Context.get_instance(-1).get_cache_path()
+    )
+    pooch_args.setdefault("path", path)
 
     p = pooch.create(**pooch_args)
 
