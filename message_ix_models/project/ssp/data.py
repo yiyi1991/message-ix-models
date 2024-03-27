@@ -108,6 +108,8 @@ class SSPOriginal(ExoDataSource):
 
         self.path = path
 
+        # super().__init__(source, _kw)
+
     def __call__(self):
         # Use prepared path, query, and replacements
         return iamc_like_data_for_query(self.path, self.query, replace=self.replace)
@@ -215,6 +217,8 @@ class SSPUpdate(ExoDataSource):
             break
 
         self.path = path
+
+        # super().__init__(source, _kw)
 
     def __call__(self):
         # Use prepared path, query, and replacements
