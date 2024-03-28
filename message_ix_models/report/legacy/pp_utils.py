@@ -2246,7 +2246,6 @@ def _retr_land_act(ds, ix):
     df: dataframe
         index: Region, Technology
     """
-    print(ds.var_list())
 
     df = ds.var("LAND") if ix else ds.par("historical_land")
     if df.empty:
