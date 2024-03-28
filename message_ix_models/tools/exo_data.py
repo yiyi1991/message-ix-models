@@ -49,6 +49,7 @@ class ExoDataSource(ABC):
     #: If not set by :meth:`.__init__`, the dimensions are :math:`(n, y)`.
     extra_dims: Tuple[str, ...] = ()
 
+    @abstractmethod
     def __init__(self, source: str, source_kw: Mapping) -> None:
         """Handle `source` and `source_kw`.
 
@@ -72,11 +73,8 @@ class ExoDataSource(ABC):
         It **should not** actually load data or perform any time- or memory-intensive
         operations; these should only be triggered by :meth:`.__call__`.
         """
-        _kw = dict(source_kw)
-        self.name = _kw.pop("name", self.name)
 
-        if len(_kw):
-            raise ValueError(f"Unhandled source keywords: {_kw}")
+        raise ValueError
 
     @abstractmethod
     def __call__(self) -> Quantity:
@@ -118,6 +116,8 @@ class ExoDataSource(ABC):
 
     def raise_on_extra_kw(self, kwargs) -> None:
         """Helper for subclasses."""
+        self.name = kwargs.pop("name", self.name)
+
         if len(kwargs):
             log.error(
                 f"Unhandled extra keyword arguments for {type(self).__name__}: "
