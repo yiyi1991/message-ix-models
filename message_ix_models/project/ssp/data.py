@@ -108,8 +108,6 @@ class SSPOriginal(ExoDataSource):
 
         self.path = path
 
-        # super().__init__(source, _kw)
-
     def __call__(self):
         # Use prepared path, query, and replacements
         return iamc_like_data_for_query(self.path, self.query, replace=self.replace)
@@ -163,7 +161,7 @@ class SSPUpdate(ExoDataSource):
 
         # Identify the data release date/version/label
         release = source_kw.pop("release", "3.0")
-
+        print(source_kw)
         self.raise_on_extra_kw(source_kw)
 
         # Replacements to apply, if any
@@ -217,8 +215,6 @@ class SSPUpdate(ExoDataSource):
             break
 
         self.path = path
-
-        # super().__init__(source, _kw)
 
     def __call__(self):
         # Use prepared path, query, and replacements
