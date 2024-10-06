@@ -10,16 +10,23 @@ package_data_path)
 from .util import read_config
 
 CONVERSION_FACTOR_NH3_N = 17 / 14
-context = read_config()
 
-default_gdp_elasticity = pd.read_excel(
-        package_data_path(
-            "material",
-            "methanol",
-            "methanol_sensitivity_pars.xlsx",
-        )
-    ).set_index("par").to_dict()["value"]["nh3_elasticity"]
-# float(0.65) # old default value
+
+ssp_mode_map = {
+    "SSP1": "CTS core",
+    "SSP2": "RTS core",
+    "SSP3": "RTS high",
+    "SSP4": "CTS high",
+    "SSP5": "RTS high",
+    "LED": "CTS core",  # TODO: move to even lower projection
+}
+
+iea_elasticity_map = {
+    "CTS core": (0.3, 0.3),
+    "CTS high": (0.48, 0.48),
+    "RTS core": (0.3, 0.3),
+    "RTS high": (0.48, 0.48),
+}
 
 
 def gen_all_NH3_fert(scenario, dry_run=False):
@@ -29,8 +36,28 @@ def gen_all_NH3_fert(scenario, dry_run=False):
         **gen_data_ts(scenario),
         **gen_demand(),
         **gen_land_input(scenario),
-        **gen_resid_demand_NH3(scenario, default_gdp_elasticity)
+        **gen_resid_demand_NH3(scenario)
     }
+
+
+def broadcast_years(df_new, max_lt, act_years, vtg_years):
+    if "year_act" in df_new.columns:
+        df_new = df_new.pipe(same_node).pipe(broadcast, year_act=act_years)
+
+        if "year_vtg" in df_new.columns:
+            df_new = df_new.pipe(
+                broadcast,
+                year_vtg=np.linspace(
+                    0, int(max_lt / 5), int(max_lt / 5 + 1), dtype=int
+                ),
+            )
+            df_new["year_vtg"] = df_new["year_act"] - 5 * df_new["year_vtg"]
+            # remove years that are not in scenario set
+            df_new = df_new[~df_new["year_vtg"].isin([2065, 2075, 2085, 2095, 2105])]
+    else:
+        if "year_vtg" in df_new.columns:
+            df_new = df_new.pipe(same_node).pipe(broadcast, year_vtg=vtg_years)
+    return df_new
 
 
 def gen_data(scenario, dry_run=False, add_ccs: bool = True, lower_costs=False):
@@ -495,8 +522,7 @@ def gen_demand():
     return {"demand": df}
 
 
-def gen_resid_demand_NH3(scenario, gdp_elasticity):
-
+def gen_resid_demand_NH3(scenario):
     context = read_config()
     s_info = ScenarioInfo(scenario)
     modelyears = s_info.Y #s_info.Y is only for modeling years

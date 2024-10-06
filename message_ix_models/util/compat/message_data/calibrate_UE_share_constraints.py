@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from .get_historical_years import main as get_historical_years
 from .utilities import intpol
 
 from .get_optimization_years import main as get_optimization_years
@@ -96,7 +95,12 @@ def _add_data(scenario, row, period_intpol, relation_year, verbose):
 
 
 def main(
-    scenario, historical_year=None, relation_year=None, period_intpol=4, verbose=False
+    scenario,
+    s_info,
+    historical_year=None,
+    relation_year=None,
+    period_intpol=4,
+    verbose=False,
 ):
     """Checks UE shares constraints against historical data.
 
@@ -112,6 +116,7 @@ def main(
     ----------
     scenario : :class:`message_ix.Scenario`
         scenario to which changes should be applies
+    s_info: .ScenarioInfo
     historical_year : int
         the last historical time period
     relation_year : int
@@ -126,9 +131,9 @@ def main(
 
     # Assigns the historical and relation_year if not defined
     if not historical_year:
-        historical_year = get_historical_years(scenario)[-1]
+        historical_year = [i for i in s_info.yv_ya["year_vtg"] if s_info.y0 > i >= 1990]
     if not relation_year:
-        relation_year = get_optimization_years(scenario)[0]
+        relation_year = s_info.y0
 
     exceedings = []
 

@@ -424,7 +424,7 @@ def make_io(src, dest, efficiency, on="input", **kwargs):
 
 
 def make_matched_dfs(
-    base: MutableMapping, **par_value: Union[float, pint.Quantity]
+    base: Union[MutableMapping, pd.DataFrame], **par_value: Union[float, pint.Quantity]
 ) -> Dict[str, pd.DataFrame]:
     """Return data frames derived from `base` for multiple parameters.
 
@@ -546,6 +546,14 @@ def merge_data(
 def minimum_version(expr: str) -> Callable:
     """Decorator for functions that require a minimum version of some upstream package.
 
+    If the decorated function is called and the condition in `expr` is not met,
+    :class:`.NotImplementedError` is raised with an informative message.
+
+    The decorated function gains an attribute :py:`.minimum_version`, another decorator
+    that can be used on associated test code. This marks the test as XFAIL, raising
+    :class:`.NotImplementedError` or :class:`.RuntimeError` (e.g. for :mod:`.click`
+    testing).
+
     See :func:`.prepare_reporter` / :func:`.test_prepare_reporter` for a usage example.
 
     Parameters
@@ -582,7 +590,7 @@ def minimum_version(expr: str) -> Callable:
             # Create the mark
             mark = pytest.mark.xfail(
                 condition=condition,
-                raises=NotImplementedError,
+                raises=(NotImplementedError, RuntimeError),
                 reason=f"Not supported{message}",
             )
 
@@ -621,6 +629,8 @@ def path_fallback(
         - :class:`str` containing one or more of:
 
           - "cache": locate `parts` in the :mod:`message_ix_models` cache directory.
+          - "local": locate `parts in the user's local data directory (same as
+            :func:`local_data_path`).
           - "package": locate `parts` in :mod:`message_ix_models` package data (same
             as :func:`.package_data_path`).
           - "private": locate `parts` in the :mod:`message_data` :file:`/data/`
@@ -646,6 +656,8 @@ def path_fallback(
         if isinstance(item, str):
             if item == "cache":
                 dirs.append(user_cache_path("message-ix-models"))
+            elif item == "local":
+                dirs.append(local_data_path())
             elif item == "package":
                 dirs.append(package_data_path())
             elif item == "private":

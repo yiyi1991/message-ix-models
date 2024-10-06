@@ -4,15 +4,37 @@ What's new
 Next release
 ============
 
+- Fix the nexus/cooling function and adding test for checking some input data (:pull:`236`).
+- Add :doc:`/project/circeular` project code and documentation (:pull:`232`).
+- Update water availability data and major code editing to allow a new test suite for the water module (:pull:`106`).
+- Expand :doc:`repro` with sections on :ref:`repro-doc` and :ref:`versioning`, including :ref:`a list of external model names and ‘versions’ <model-names>` like “MESSAGEix-GLOBIOM 2.0” (:issue:`224`, :pull:`226`).
+- Update :doc:`/transport/index` (:pull:`213`).
+- Add "LED", "SSP4", and "SSP5" as values for the :program:`--ssp=…` option in :func:`.common_params` (:pull:`233`).
+- Fix and update :doc:`/api/tools-costs` (:pull:`219`, :pull:`206`, :pull:`221`)
+
+  - Fix naming of GDP and population columns in SSP data aggregation (:pull:`219`).
+  - Edit inputs for storage, CSP, hydrogen, and industry technologies (:pull:`206`).
+  - Replace solar and wind technologies with new ones (:pull:`206`).
+  - Reorganize input files and incorporate `first_year.csv` data into `tech_map.csv` (:pull:`221`).
+  - Reconfigure use and implementation of technology variants/modules to be more agnostic (:pull:`221`).
+
+v2024.8.6
+=========
+
 - Add :doc:`/material/index` (:pull:`188`, :pull:`189`).
-Changes to :doc:`/api/tools-costs`
-----------------------------------
+- Update :doc:`/material/index` (:pull:`201`).
+- Add :doc:`/transport/index` (:pull:`207`, :pull:`208`, :issue:`210`, :pull:`212`).
+- Add :doc:`/project/edits` project code and documentation (:pull:`204`).
+- Reduce log verbosity of :func:`.apply_spec` (:pull:`202`).
+- Fix and update :doc:`/api/tools-costs` (:pull:`186`, :pull:`187`, :pull:`190`, :pull:`195`).
+
   - Fix jumps in cost projections for technologies with first technology year that's after than the first model year (:pull:`186`).
   - Change the use of base_year to mean the year to start modeling cost changes (:pull:`186`).
   - Update cost assumptions for certain CCS technologies (:pull:`186`).
   - Change the default fixed O&M reduction rate to 0 (:pull:`186`).
   - Modify to use 2023 release of IEA WEO data and to use 2022 historic data for the base year (:pull:`187`).
   - Change the default final year to 2110 (:pull:`190`).
+  - Add :attr:`~.costs.Config.use_vintages` to control whether vintages are used in computing fixed O&M costs (:pull:`195`).
 
 v2024.4.22
 ==========

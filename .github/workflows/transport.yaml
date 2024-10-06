@@ -1,0 +1,52 @@
+name: MESSAGEix-Transport
+
+env:
+  target: transport.yaml --repo=iiasa/message_data
+
+  # Starting point of the workflow.
+  # Use this value to build from a certain scenario:
+  # base: --url="ixmp://ixmp-dev/MESSAGEix-GLOBIOM 1.1-R12/baseline_DEFAULT#21"
+  # Use this value to allow the workflow to determine model & scenario names
+  # and versions:
+  base: --platform=ixmp-dev
+
+  # Set this to a particular step to truncate the workflow
+  from-step: ""
+
+on:
+  # Uncomment these lines for debugging, but leave them commented on 'main'
+  # pull_request:
+  #   branches: [ main ]
+  # push:
+  #   branches: [ main ]
+  schedule:
+  - cron: "0 1 * * *"  # 01:00 UTC = 02:00 CET = 03:00 CEST
+  workflow_dispatch: {}
+
+# Cancel previous runs that have not completed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Invoke "transport.yaml" workflow in message_data
+        env:
+          GH_TOKEN: ${{ secrets.MESSAGE_DATA_DISPATCH_TOKEN }}
+        run: |
+          gh workflow run \
+            ${{ env.target }} --ref=dev \
+            --field ref=${{ github.ref }} \
+            --field sha=${{ github.sha }} \
+            --field base=${{ env.base }} \
+            --field from-step=${{ env.from-step }}
+
+          sleep 5
+
+          gh run list \
+            --workflow=${{ env.target }} \
+            --json url,status \
+            --jq 'map(select(.status != "completed"))[0].url' >> $GITHUB_STEP_SUMMARY
