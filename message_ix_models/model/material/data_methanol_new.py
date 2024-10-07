@@ -2,15 +2,15 @@ from ast import literal_eval
 from typing import TYPE_CHECKING, Dict, List
 
 import pandas as pd
-
+import yaml
 from message_ix import make_df
 from message_ix_models.util import (
 broadcast,
 same_node,
-package_data_path,
+package_data_path,)
 
-)
-
+import message_ix_models.util
+from message_ix_models.model.material.material_demand import material_demand_calc
 from message_ix_models.model.material.util import read_config
 from message_ix_models.util import broadcast, same_node
 
@@ -141,6 +141,64 @@ def broadcast_reduced_df(df, par_name):
                 if "node_dest" in list(df_bc_node.columns):
                     df_bc_node = df_bc_node.pipe(broadcast, node_dest=node_cols_codes["node_dest"])
 
+def broadcast_nodes(
+    df_bc_node: pd.DataFrame,
+    df_final: pd.DataFrame,
+    node_cols: List[str],
+    node_cols_codes: Dict[str, pd.Series],
+    i: int,
+) -> pd.DataFrame:
+    """
+    Broadcast nodes that were stored in pivoted row
+
+    Parameters
+    ----------
+    df_bc_node: pd.DataFrame
+    df_final: pd.DataFrame
+    node_cols: List[str]
+    node_cols_codes: Dict[str, pd.Series]
+    i: int
+    """
+    if len(node_cols) == 1:
+        if "node_loc" in node_cols:
+            df_bc_node = df_bc_node.pipe(
+                broadcast, node_loc=node_cols_codes["node_loc"]
+            )
+        if "node_vtg" in node_cols:
+            df_bc_node = df_bc_node.pipe(
+                broadcast, node_vtg=node_cols_codes["node_vtg"]
+            )
+        if "node_rel" in node_cols:
+            df_bc_node = df_bc_node.pipe(
+                broadcast, node_rel=node_cols_codes["node_rel"]
+            )
+        if "node" in node_cols:
+            df_bc_node = df_bc_node.pipe(broadcast, node=node_cols_codes["node"])
+        if "node_share" in node_cols:
+            df_bc_node = df_bc_node.pipe(
+                broadcast, node_share=node_cols_codes["node_share"]
+            )
+    else:
+        df_bc_node = df_bc_node.pipe(broadcast, node_loc=node_cols_codes["node_loc"])
+        if len(df_final.loc[i][node_cols].T.unique()) == 1:
+            # df_bc_node["node_rel"] = df_bc_node["node_loc"]
+            df_bc_node = df_bc_node.pipe(
+                same_node
+            )  # not working for node_rel in installed message_ix_models version
+        else:
+            if "node_rel" in list(df_bc_node.columns):
+                df_bc_node = df_bc_node.pipe(
+                    broadcast, node_rel=node_cols_codes["node_rel"]
+                )
+            if "node_origin" in list(df_bc_node.columns):
+                df_bc_node = df_bc_node.pipe(
+                    broadcast, node_origin=node_cols_codes["node_origin"]
+                )
+            if "node_dest" in list(df_bc_node.columns):
+                df_bc_node = df_bc_node.pipe(
+                    broadcast, node_dest=node_cols_codes["node_dest"]
+                )
+    return df_bc_node
 
 def broadcast_years(
     df_bc_node: pd.DataFrame,

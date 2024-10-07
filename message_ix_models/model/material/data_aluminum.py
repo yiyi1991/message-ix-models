@@ -447,12 +447,10 @@ def gen_data_aluminum(
 
     ts_dict = gen_data_alu_ts(data_aluminum_ts, nodes)
     rel_dict = gen_data_alu_rel(data_aluminum_rel, modelyears)
-    trade_dict = gen_data_alu_trade(scenario)
 
     results_aluminum = combine_df_dictionaries(
-        const_dict, ts_dict, rel_dict, demand_dict, trade_dict
+        const_dict, ts_dict, rel_dict, demand_dict
     )
-
     return results_aluminum
 
 

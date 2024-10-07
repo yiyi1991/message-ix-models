@@ -171,7 +171,7 @@ def get_spec(context=None) -> Mapping[str, ScenarioInfo]:
     add.set['commodity'] = context["material"]["steel"]["commodity"]["add"] + \
         context["material"]["common"]["commodity"]["require"] + \
         context["material"]["generic"]["commodity"]["add"] + \
-        context["material"]["aluminum"]["commodity"]["add"]
+        context["material"]["aluminum"]["commodity"]["add"] + \
         context["material"]["petro_chemicals"]["commodity"]["add"]
 
     # Add other sets

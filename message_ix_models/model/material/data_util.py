@@ -19,7 +19,6 @@ from message_ix_models.tools.costs.config import Config
 from message_ix_models.tools.costs.projections import create_cost_projections
 from message_ix_models.tools.exo_data import prepare_computer
 from message_ix_models.util import package_data_path
-from message_ix_models.tools.get_optimization_years import main as get_optimization_years
 
 if TYPE_CHECKING:
     from message_ix_models import Context
@@ -113,9 +112,7 @@ def add_macro_COVID(
             "C:/", "Users", "maczek", "Downloads", "macro", filename
         )
     else:
-        xls_file = os.path.join("C:\\", "Users", "unlu", "Documents",
-        "MyDocuments_IIASA", "Material_Flow", "macro_calibration" , filename)
-
+        xls_file = os.path.join("P:", "ene.model", "MACRO", "python", filename)
     # Making a dictionary from the MACRO Excel file
     xls = pd.ExcelFile(xls_file)
     data = {}
@@ -973,25 +970,13 @@ def map_iea_db_to_msg_regs(df_iea: pd.DataFrame) -> pd.DataFrame:
 
     Returns
     -------
-    object
-
+    pandas.DataFrame
+        with added column "REGION" containing node IDs according to
+        :func:`get_region_map`.
     """
-    file_path = package_data_path("node", reg_map_fname)
-    yaml_data = read_yaml_file(file_path)
-    if "World" in yaml_data.keys():
-        yaml_data.pop("World")
-
-    r12_map = {k: v["child"] for k, v in yaml_data.items()}
-    r12_map_inv = {k: v[0] for k, v in invert_dictionary(r12_map).items()}
-
-    df_iea = df_iea.merge(
-        pd.DataFrame.from_dict(
-            r12_map_inv, orient="index", columns=["REGION"]
-        ).reset_index(),
-        left_on="COUNTRY",
-        right_on="index",
-    ).drop("index", axis=1)
-    return df_iea
+    # - Duplicate the "COUNTRY" column to "REGION".
+    # - Replace the "REGION" values using the mapping.
+    return df_iea.eval("REGION = COUNTRY").replace({"REGION": get_region_map()})
 
 
 def read_iea_tec_map(tec_map_fname: str) -> pd.DataFrame:
@@ -1437,6 +1422,7 @@ def add_emission_accounting(scen):
     #
     # scen.add_par("emission_factor", df_em)
     # scen.commit("add methanol CO2_industry")
+
 def add_elec_lowerbound_2020(scen):
     # To avoid zero i_spec prices only for R12_CHN, add the below section.
     # read input parameters for relevant technology/commodity combinations for
@@ -2267,6 +2253,7 @@ if __name__ == "__main__":
     # df = df_inp.set_index(["technology"]).join(df).dropna()
     # df["Value"] = df["Value"] / df["value"] / 3.6 / 8760
     # print()
+
 def calculate_ini_new_cap(df_demand, technology, material):
     """
     Derive initial_new_capacity_up parametrization for CCS based on cement demand
