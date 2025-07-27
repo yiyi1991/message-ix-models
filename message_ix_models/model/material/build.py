@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from typing import Any, Optional
 
 import message_ix
+import pandas as pd
 
 from message_ix_models import Context
 from message_ix_models.model.build import apply_spec
@@ -65,8 +66,8 @@ SPEC_LIST = (
     "cement",
     "aluminum",
     "petro_chemicals",
-    "buildings",
-    "power_sector",
+    # "buildings",
+    # "power_sector",
     "fertilizer",
     "methanol",
 )
@@ -276,59 +277,121 @@ def make_spec(regions: str, materials: str or None = SPEC_LIST) -> Spec:
 
     return s
 
-# same as build(), but context-based
+# # same as build() in message_ix_models main branch, but context-based
+# def build_M(
+#     context: Context,
+#     scenario: message_ix.Scenario,
+#     ) -> message_ix.Scenario:
+#     """Set up materials accounting on `scenario`."""
+
+#     # Read config and save to context.material
+#     from message_ix_models.model.material.config import Config
+#     config = Config()
+#     context.material = config
+
+#     node_suffix = context.model.regions
+
+#     if node_suffix != "R12":
+#         raise NotImplementedError(
+#             "MESSAGEix-Materials is currently only supporting"
+#             " MESSAGEix-GLOBIOM R12 regions"
+#         )
+
+#     if f"{node_suffix}_GLB" not in list(scenario.platform.regions().region):
+#         # Required for material trade model
+#         # TODO Include this in the spec, while not using it as a value for `node_loc`
+#         scenario.platform.add_region(f"{node_suffix}_GLB", "region", "World")
+
+#     # Get the specification and apply to the base scenario
+#     spec = make_spec(node_suffix)
+#     apply_spec(scenario, spec, add_data, fast=True)  # dry_run=True
+
+#     water_dict = pd.read_excel(
+#         package_data_path("material", "other", "water_tec_pars.xlsx"),
+#         sheet_name=None,
+#     )
+#     scenario.check_out()
+#     for par in water_dict.keys():
+#         scenario.add_par(par, water_dict[par])
+#     scenario.commit("add missing water tecs")
+
+#     # Adjust exogenous energy demand to incorporate the endogenized sectors
+#     # Adjust the historical activity of the useful level industry technologies
+#     # Coal calibration 2020
+#     add_ccs_technologies(scenario)
+#     if context.material.old_calib:
+#         modify_demand_and_hist_activity(scenario)
+#     else:
+#         modify_baseyear_bounds(scenario)
+#         last_hist_year = scenario.par("historical_activity")["year_act"].max()
+#         modify_industry_demand(scenario, last_hist_year, context.material.iea_data_path)
+#         add_new_ind_hist_act(scenario, [last_hist_year], context.material.iea_data_path)
+#         add_emission_accounting(scenario)
+
+#     if context.material.modify_existing_constraints:
+#         calibrate_existing_constraints(scenario)
+
+#     return scenario
+
+# same as build() in message_ix_models ssp branch, but context-based
 def build_M(
     context: Context,
     scenario: message_ix.Scenario,
-) -> message_ix.Scenario:
+    ) -> message_ix.Scenario:
     """Set up materials accounting on `scenario`."""
+
+    if context.model.regions != "R12":
+        raise NotImplementedError(
+            "MESSAGEix-Materials is currently only supporting"
+            " MESSAGEix-GLOBIOM R12 regions"
+        )
+
+    if f"{context.model.regions}_GLB" not in list(scenario.platform.regions().region):
+        # Required for material trade model
+        # TODO Include this in the spec, while not using it as a value for `node_loc`
+        scenario.platform.add_region(f"{context.model.regions}_GLB", "region", "World")
+
+    # Get the specification and apply to the base scenario
+    spec = make_spec(context.model.regions)
+    apply_spec(scenario, spec, add_data, fast=True)  # dry_run=True
+
+    add_water_par_data(scenario)
+
 
     # Read config and save to context.material
     from message_ix_models.model.material.config import Config
     config = Config()
     context.material = config
 
-    node_suffix = context.model.regions
-
-    if node_suffix != "R12":
-        raise NotImplementedError(
-            "MESSAGEix-Materials is currently only supporting"
-            " MESSAGEix-GLOBIOM R12 regions"
-        )
-
-    if f"{node_suffix}_GLB" not in list(scenario.platform.regions().region):
-        # Required for material trade model
-        # TODO Include this in the spec, while not using it as a value for `node_loc`
-        scenario.platform.add_region(f"{node_suffix}_GLB", "region", "World")
-
-    # Get the specification and apply to the base scenario
-    spec = make_spec(node_suffix)
-    apply_spec(scenario, spec, add_data, fast=True)  # dry_run=True
-
-    water_dict = pd.read_excel(
-        package_data_path("material", "other", "water_tec_pars.xlsx"),
-        sheet_name=None,
-    )
-    scenario.check_out()
-    for par in water_dict.keys():
-        scenario.add_par(par, water_dict[par])
-    scenario.commit("add missing water tecs")
-
     # Adjust exogenous energy demand to incorporate the endogenized sectors
     # Adjust the historical activity of the useful level industry technologies
     # Coal calibration 2020
-    add_ccs_technologies(scenario)
     if context.material.old_calib:
         modify_demand_and_hist_activity(scenario)
     else:
-        modify_baseyear_bounds(scenario)
-        last_hist_year = scenario.par("historical_activity")["year_act"].max()
-        modify_industry_demand(scenario, last_hist_year, context.material.iea_data_path)
-        add_new_ind_hist_act(scenario, [last_hist_year], context.material.iea_data_path)
-        add_emission_accounting(scenario)
+        scenario.check_out()
+        for k, v in gen_other_ind_demands(get_ssp_from_context(context)).items():
+            scenario.add_par(
+                "demand",
+                v[
+                    v["year"].isin(
+                        scenario.vintage_and_active_years()["year_act"].unique()
+                    )
+                ],
+            )
+        scenario.commit("add new other industry demands")
+        # overwrite non-Materials industry technology calibration
+        calib_data = get_hist_act(
+            scenario, [1990, 1995, 2000, 2010, 2015, 2020], use_cached=True
+        )
+        scenario.check_out()
+        for k, v in calib_data.items():
+            scenario.add_par(k, v)
+        scenario.commit("new calibration of other industry")
+
+    add_emission_accounting(scenario)
+    add_cement_ccs_co2_tr_relation(scenario)
 
     if context.material.modify_existing_constraints:
-        calibrate_existing_constraints(scenario)
-
+        calibrate_existing_constraints(context, scenario, context.material.iea_data_path) # TODO: can be simplified
     return scenario
-
