@@ -566,6 +566,34 @@ def run_lh2_prod_reporting(
     return _filter_years(py_df, first_model_year, is_hist=False)
 
 
+def run_lh2_prod_reporting(
+    rep: Reporter, model_name: str, scen_name: str
+) -> pyam.IamDataFrame:
+    """Generate reporting for liquefied hydrogen production."""
+    var = "lh2_prod"
+    config = load_config(var)
+    df = pyam_df_from_rep(rep, config.var, config.mapping)
+    py_df = format_reporting_df(
+        df, config.iamc_prefix, model_name, scen_name, config.unit, config.mapping
+    )
+    first_model_year = get_first_model_year(rep)
+    return _filter_years(py_df, first_model_year, is_hist=False)
+
+
+def run_lh2_prod_reporting(
+    rep: Reporter, model_name: str, scen_name: str
+) -> pyam.IamDataFrame:
+    """Generate reporting for liquefied hydrogen production."""
+    var = "lh2_prod"
+    config = load_config(var)
+    df = pyam_df_from_rep(rep, config.var, config.mapping)
+    py_df = format_reporting_df(
+        df, config.iamc_prefix, model_name, scen_name, config.unit, config.mapping
+    )
+    first_model_year = get_first_model_year(rep)
+    return _filter_years(py_df, first_model_year, is_hist=False)
+
+
 def run_h2_prod_reporting(
     rep: Reporter, model_name: str, scen_name: str
 ) -> pyam.IamDataFrame:
