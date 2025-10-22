@@ -9,7 +9,11 @@ import pandas as pd
 
 from message_ix_models import Context
 from message_ix_models.util import load_package_data, package_data_path
-from message_ix_models.util.transaction import transact
+
+# from message_ix_models.util.transaction import transact
+
+import ixmp
+import message_ix
 
 # Configuration files
 METADATA = [
