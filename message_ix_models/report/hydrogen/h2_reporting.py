@@ -351,6 +351,11 @@ def format_reporting_df(
         .drop(
             columns=cols_to_drop
         )  # Remove original_unit and stoichiometric_factor columns
+        .groupby(
+            ["Model", "Scenario", "region", "variable", "Year", "Unit"], dropna=False
+        )
+        .sum(numeric_only=True)
+        .reset_index()
     )
 
     extra_dims = [
