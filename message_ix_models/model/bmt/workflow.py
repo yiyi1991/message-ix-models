@@ -35,6 +35,7 @@ def solve(
     }
 
     scenario.solve(model, solve_options=solve_options, gams_args=["--cap_comm=1"])
+    scenario.solve(model, solve_options=solve_options, gams_args=["--cap_comm=1"])
     scenario.set_as_default()
 
     return scenario
@@ -238,34 +239,25 @@ def generate(context: Context) -> Workflow:
     # - .model.transport.config.Config.code
     # scenario_code = CL_SCENARIO.get()[f"M {context.ssp}"]
 
-    # CL_SCENARIO (see .model.transport.config) is built from SDMX codelist
-    # data/sdmx/IIASA_ECE_CL_TRANSPORT_SCENARIO(1.3.0).xml. From that version each
-    # scenario has two codes: id "SSP{n}" (extra_modules=[]) and
-    # "M SSP{n}" (extra_modules=["material"]).
-    # Use the code without "M " to build transport without the material module.
-    # scenario_code = CL_SCENARIO.get()[context.ssp]
-
-    # Add step(s) on top of "M cloned" that build MESSAGEix-Transport. For reference:
+    # Add step(s) on top of the previous step ("M cloned") that build
+    # MESSAGEix-Transport. For reference:
     # - .model.transport.workflow.add_steps
     # - .model.workflow.from_codelist, which makes a similar call
     #
     # `name` is the name of the final step
-    name = transport.add_steps(wf, name, context.transport.code)
+    name = transport.add_steps(wf, "M cloned", scenario_code)
 
     # Clone to the URL desired for this workflow, at a step named "MT built".
-    # After cloning, set the scenario as default so it is the one used by later steps
-    name = wf.add_step("MT built", name, _set_as_default, target=f"{url}MT", clone=True)
-    # TODO: check if Paul's action already has something to set as default
+    # Giving action=None means nothing is run on the scenario.
+    name = wf.add_step("MT built", name, action=None, target=f"{url}MT", clone=True)
 
     # NB .model.transport.workflow.generate sets context.solve including
     #    model="MESSAGE", i.e. excluding MACRO, which is not expected to work on
     #    MESSAGEix-Transport.
 
     name = wf.add_step("MT solved", name, solve)
+    name = wf.add_step("BMT build", name, build_B, target=f"{url}BMT", clone=c)
 
-    # Transport report step (from .model.transport.workflow: callback + "transport all")
-    name = wf.add_step("MT reported", name, report)
-    name = wf.add_step("BMT built", "MT solved", build_B, target=f"{url}BMT", clone=c)
     name = wf.add_step("BMT solved", name, solve)
     name = wf.add_step("BMTX built", name, build_PM, target=f"{url}BMTX", clone=c)
     name = wf.add_step("BMTX baseline solved", name, solve)
@@ -288,7 +280,8 @@ def generate(context: Context) -> Workflow:
     name = wf.add_step(
         "BMTX baseline macro", name, add_macro, target=f"{url}BMTX_message_macro"
     )
+    # NB At this point, clone and shift firstmodelyear to 2030
 
-    wf.add_step("BMTX baseline macro reported", name, report)
+    wf.add_step("BMTX baseline reported", name, report)
 
     return wf
