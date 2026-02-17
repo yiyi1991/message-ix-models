@@ -46,21 +46,27 @@ def _generate_vetting_csv(
 
     # Calculate gap and gap share
     vetting_data["gap"] = (
+    # Calculate gap and gap share
+    vetting_data["gap"] = (
         vetting_data["value_original"] - vetting_data["value_modified"]
     )
 
     # Calculate gap share (percentage) (avoid division by zero)
     vetting_data["gap_share"] = (
-        vetting_data["gap"] / vetting_data["value_original"].replace(0, 1) * 100
+        vetting_data["gap"]
+        / vetting_data["value_original"].replace(0, 1)
+        * 100
     )
 
     # Replace infinite values with 0 (when original was 0)
-    vetting_data["gap_share"] = vetting_data["gap_share"].replace(
-        [float("inf"), -float("inf")], 0
-    )
+    vetting_data["gap_share"] = vetting_data[
+        "gap_share"
+    ].replace([float("inf"), -float("inf")], 0)
 
     # Round to reasonable precision
-    vetting_data["gap_share"] = vetting_data["gap_share"].round(2)
+    vetting_data["gap_share"] = vetting_data[
+        "gap_share"
+    ].round(2)
 
     # Select and rename columns for clarity
     output_columns = [
@@ -69,6 +75,8 @@ def _generate_vetting_csv(
         "commodity",
         "value_original",
         "value_modified",
+        "gap",
+        "gap_share",
         "gap",
         "gap_share",
     ]
@@ -82,9 +90,12 @@ def _generate_vetting_csv(
         "modified_demand",
         "gap",
         "gap_share",
+        "gap",
+        "gap_share",
     ]
 
     # # Filter out rows where no subtraction occurred
+    # vetting_data = vetting_data[vetting_data["gap"] > 0]
     # vetting_data = vetting_data[vetting_data["gap"] > 0]
 
     # Sort by commodity, node, year for better readability
@@ -101,6 +112,10 @@ def _generate_vetting_csv(
         max_pct = vetting_data["gap_share"].max()
         log.info(f"Average gap share: {avg_pct:.2f}%")
         log.info(f"Max gap share: {max_pct:.2f}%")
+        avg_pct = vetting_data["gap_share"].mean()
+        max_pct = vetting_data["gap_share"].max()
+        log.info(f"Average gap share: {avg_pct:.2f}%")
+        log.info(f"Max gap share: {max_pct:.2f}%")
 
 
 # Maybe it is better to have one function for each method?
@@ -111,6 +126,7 @@ def subtract_material_demand(
     sturm_c: pd.DataFrame,
     method: str = "bm_subtraction",
     generate_vetting_csv: bool = True,
+    vetting_output_path: str = "material_haircut_buildings.csv",
     vetting_output_path: str = "material_haircut_buildings.csv",
 ) -> pd.DataFrame:
     """Subtract inter-sector material demand from existing demands in scenario.
@@ -141,6 +157,7 @@ def subtract_material_demand(
         Whether to generate a CSV file showing subtraction details (default: True)
     vetting_output_path : str, optional
         Path for the vetting CSV file (default:
+        "material_haircut_buildings.csv")
         "material_haircut_buildings.csv")
 
     Returns
