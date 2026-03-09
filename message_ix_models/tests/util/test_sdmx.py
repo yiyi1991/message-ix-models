@@ -192,12 +192,15 @@ class TestURNLookupEnum:
             def _get_item_scheme(self):
                 return read("AGENCIES")
 
-        return Foo["IIASA_ECE"]
+        # TODO Improve type hinting of URNLookupEnum so mypy does not complain
+        return Foo["IIASA_ECE"]  # type: ignore [index]
 
-    def test_urn(self, obj: URNLookupEnum) -> None:
-        """:attr:`.urn` retrieves the string URN for an enumeration member."""
+    def test_get_urn(self, obj: URNLookupEnum) -> None:
+        """:meth:`get_urn` retrieves the string URN for an enumeration member."""
+        # get_urn() retrieves the object's URN
         assert re.fullmatch(
-            rf"{_urn_prefix}.base.Agency=IIASA_ECE:AGENCIES.*\.IIASA_ECE", obj.urn
+            rf"{_urn_prefix}.base.Agency=IIASA_ECE:AGENCIES.*\.IIASA_ECE",
+            obj.get_urn(obj),
         )
 
     def test_str(self, obj: URNLookupEnum) -> None:

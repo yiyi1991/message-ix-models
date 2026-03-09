@@ -502,8 +502,15 @@ class URNLookupMixin(Generic[T]):
                 break
         return result
 
+    @classmethod
+    def get_urn(cls, member: "URNLookupMixin") -> str:
+        for k, v in cls.__dict__["_urn_name"].items():
+            if v == member.name:
+                return k
+        raise ValueError(f"No URN for {member}")
+
     def __str__(self) -> str:
-        return self.urn.partition("=")[2]
+        return type(self).get_urn(self).partition("=")[2]
 
     __repr__ = __str__
 
