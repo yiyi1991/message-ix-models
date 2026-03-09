@@ -239,8 +239,14 @@ def generate(context: Context) -> Workflow:
     # - .model.transport.config.Config.code
     # scenario_code = CL_SCENARIO.get()[f"M {context.ssp}"]
 
-    # Add step(s) on top of the previous step ("M cloned") that build
-    # MESSAGEix-Transport. For reference:
+    # CL_SCENARIO (see .model.transport.config) is built from SDMX codelist
+    # data/sdmx/IIASA_ECE_CL_TRANSPORT_SCENARIO(1.3.0).xml. From that version each
+    # scenario has two codes: id "SSP{n}" (extra_modules=[]) and
+    # "M SSP{n}" (extra_modules=["material"]).
+    # Use the code without "M " to build transport without the material module.
+    scenario_code = CL_SCENARIO.get()[context.ssp]
+
+    # Add step(s) on top of "M cloned" that build MESSAGEix-Transport. For reference:
     # - .model.transport.workflow.add_steps
     # - .model.workflow.from_codelist, which makes a similar call
     #
@@ -248,16 +254,19 @@ def generate(context: Context) -> Workflow:
     name = transport.add_steps(wf, "M cloned", scenario_code)
 
     # Clone to the URL desired for this workflow, at a step named "MT built".
-    # Giving action=None means nothing is run on the scenario.
-    name = wf.add_step("MT built", name, action=None, target=f"{url}MT", clone=True)
+    # After cloning, set the scenario as default so it is the one used by later steps
+    name = wf.add_step("MT built", name, _set_as_default, target=f"{url}MT", clone=True)
+    # TODO: check if Paul's action already has something to set as default
 
     # NB .model.transport.workflow.generate sets context.solve including
     #    model="MESSAGE", i.e. excluding MACRO, which is not expected to work on
     #    MESSAGEix-Transport.
 
     name = wf.add_step("MT solved", name, solve)
-    name = wf.add_step("BMT build", name, build_B, target=f"{url}BMT", clone=c)
 
+    # Transport report step (from .model.transport.workflow: callback + "transport all")
+    name = wf.add_step("MT reported", name, _run_transport_report)
+    name = wf.add_step("BMT built", name, build_B, target=f"{url}BMT", clone=c)
     name = wf.add_step("BMT solved", name, solve)
     name = wf.add_step("BMTX built", name, build_PM, target=f"{url}BMTX", clone=c)
     name = wf.add_step("BMTX baseline solved", name, solve)
