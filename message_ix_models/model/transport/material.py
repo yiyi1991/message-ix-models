@@ -111,7 +111,7 @@ def get_groups(config: "Config") -> dict[str, dict[str, list[str]]]:
     return dict(c=c_groups, t=t_groups)
 
 
-@minimum_version("message_ix 3.11.2.dev0")  # NB Actually 3.12
+@minimum_version("message_ix 3.11.2")  # NB Actually 3.12
 def prepare_computer(c: "Computer") -> None:
     """Prepare `c` to calculate and add data for materiality of transport."""
     # Retrieve transport configuration

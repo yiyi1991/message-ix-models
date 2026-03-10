@@ -80,7 +80,7 @@ MARK: dict[Hashable, pytest.MarkDecorator] = {
     #     600, method="thread" if platform.system() == "Windows" else "thread"
     # ),
     12: pytest.mark.xfail(
-        Version(version("message_ix")) < Version("3.12"),
+        version("message_ix") < "3.12",
         reason="Requires MESSAGE cap-comm parameters, only available in message-ix "
         ">=3.12",
     ),
