@@ -112,6 +112,10 @@ IAMC_VAR_REPLACE = {
 IAMC_ZERO_MUTE_BEFORE_YEAR = 2020
 
 
+# Default fallback for projects where `scenario.firstmodelyear` isn't available.
+IAMC_ZERO_MUTE_BEFORE_YEAR = 2020
+
+
 #: Quantities in which to select transport technologies only. See :func:`callback`.
 QUANTITY = [
     "CAP_NEW",
@@ -350,6 +354,17 @@ def convert_iamc(c: "Computer") -> None:
             year_cutoff = int(getattr(scen, "firstmodelyear", year_cutoff))
     except Exception:
         pass
+    k = Key("transport", tag="iamc")
+    c.add(k, mask_iamc_zeros_before_year, k_raw, year_cutoff=year_cutoff)
+
+    # Mask zeros for years before IAMC_ZERO_MUTE_BEFORE_YEAR (blank cells instead of 0)
+    year_cutoff = IAMC_ZERO_MUTE_BEFORE_YEAR
+    try:
+        scen = c.graph.get("scenario")
+        if scen is not None:
+            year_cutoff = int(getattr(scen, "firstmodelyear", year_cutoff))
+    except Exception:
+        pass
     k_masked = Key("transport", tag="iamc")
     c.add(k_masked, mask_iamc_zeros_before_year, k_raw, year_cutoff=year_cutoff)
 
@@ -403,22 +418,7 @@ def mask_iamc_zeros_before_year(
     value == 0.
     So that the transport reporting merges into the legacy reporting properly.
     """
-    if type(data).__name__ == "IamDataFrame":
-        # pyam.IamDataFrame(long) drops NaN rows on reconstruction; mutate _data
-        # in place so variables are preserved for store_ts.
-        wide = data._data
-        if not len(wide):
-            return data
-        years = wide.index.get_level_values("year")
-        mask = (years.astype(int) < year_cutoff) & (wide == 0)
-        if not mask.any():
-            return data
-        updated = wide.copy()
-        updated.loc[mask] = float("nan")
-        data._data = updated
-        return data
-
-    # Unwrap Quantity or other wrappers to get the underlying DataFrame
+    # Unwrap IamDataFrame or Quantity to get the underlying DataFrame
     try:
         df = getattr(data, "data", data)
         if callable(df):
@@ -438,19 +438,26 @@ def mask_iamc_zeros_before_year(
     )
     if year_col is None or value_col is None:
         return data
+    out = df.copy()
+    mask = (out[year_col].astype(int) < year_cutoff) & (out[value_col] == 0)
+    out.loc[mask, value_col] = float("nan")
+    # Return same type so write_report/store_ts get the expected type
+    if not isinstance(data, pd.DataFrame):
+        if type(data).__name__ == "IamDataFrame":
+            try:
+                import pyam
 
-    mask = (df[year_col].astype(int) < year_cutoff) & (df[value_col] == 0)
-    if not mask.any():
-        return data
+                return pyam.IamDataFrame(out)
+            except ImportError:
+                pass
+        if hasattr(data, "data"):
+            try:
+                import genno
 
-    if isinstance(data, pd.DataFrame):
-        out = data.copy()
-        out.loc[mask, value_col] = float("nan")
-        return out
-
-    # Other wrappers (e.g. genno.Quantity) exposing a mutable .data attribute.
-    df.loc[mask, value_col] = float("nan")
-    return data
+                return genno.Quantity(out, name=getattr(data, "name", None))
+            except Exception:
+                pass
+    return out
 
 
 def misc(c: "Computer") -> None:
