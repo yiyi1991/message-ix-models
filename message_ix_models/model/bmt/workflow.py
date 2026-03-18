@@ -251,7 +251,7 @@ def generate(context: Context) -> Workflow:
     # - .model.workflow.from_codelist, which makes a similar call
     #
     # `name` is the name of the final step
-    name = transport.add_steps(wf, "M cloned", scenario_code)
+    name = transport.add_steps(wf, name, scenario_code)
 
     # Clone to the URL desired for this workflow, at a step named "MT built".
     # After cloning, set the scenario as default so it is the one used by later steps
@@ -265,7 +265,7 @@ def generate(context: Context) -> Workflow:
     name = wf.add_step("MT solved", name, solve)
 
     # Transport report step (from .model.transport.workflow: callback + "transport all")
-    name = wf.add_step("MT reported", name, _run_transport_report)
+    name = wf.add_step("MT reported", name, report)
     name = wf.add_step("BMT built", name, build_B, target=f"{url}BMT", clone=c)
     name = wf.add_step("BMT solved", name, solve)
     name = wf.add_step("BMTX built", name, build_PM, target=f"{url}BMTX", clone=c)
