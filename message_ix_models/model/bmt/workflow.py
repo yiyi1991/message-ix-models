@@ -266,7 +266,7 @@ def generate(context: Context) -> Workflow:
 
     # Transport report step (from .model.transport.workflow: callback + "transport all")
     name = wf.add_step("MT reported", name, report)
-    name = wf.add_step("BMT built", name, build_B, target=f"{url}BMT", clone=c)
+    name = wf.add_step("BMT built", "MT solved", build_B, target=f"{url}BMT", clone=c)
     name = wf.add_step("BMT solved", name, solve)
     name = wf.add_step("BMTX built", name, build_PM, target=f"{url}BMTX", clone=c)
     name = wf.add_step("BMTX baseline solved", name, solve)

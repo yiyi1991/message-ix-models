@@ -53,20 +53,16 @@ def _generate_vetting_csv(
 
     # Calculate gap share (percentage) (avoid division by zero)
     vetting_data["gap_share"] = (
-        vetting_data["gap"]
-        / vetting_data["value_original"].replace(0, 1)
-        * 100
+        vetting_data["gap"] / vetting_data["value_original"].replace(0, 1) * 100
     )
 
     # Replace infinite values with 0 (when original was 0)
-    vetting_data["gap_share"] = vetting_data[
-        "gap_share"
-    ].replace([float("inf"), -float("inf")], 0)
+    vetting_data["gap_share"] = vetting_data["gap_share"].replace(
+        [float("inf"), -float("inf")], 0
+    )
 
     # Round to reasonable precision
-    vetting_data["gap_share"] = vetting_data[
-        "gap_share"
-    ].round(2)
+    vetting_data["gap_share"] = vetting_data["gap_share"].round(2)
 
     # Select and rename columns for clarity
     output_columns = [
