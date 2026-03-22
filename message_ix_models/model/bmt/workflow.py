@@ -244,14 +244,14 @@ def generate(context: Context) -> Workflow:
     # scenario has two codes: id "SSP{n}" (extra_modules=[]) and
     # "M SSP{n}" (extra_modules=["material"]).
     # Use the code without "M " to build transport without the material module.
-    scenario_code = CL_SCENARIO.get()[context.ssp]
+    # scenario_code = CL_SCENARIO.get()[context.ssp]
 
     # Add step(s) on top of "M cloned" that build MESSAGEix-Transport. For reference:
     # - .model.transport.workflow.add_steps
     # - .model.workflow.from_codelist, which makes a similar call
     #
     # `name` is the name of the final step
-    name = transport.add_steps(wf, name, scenario_code)
+    name = transport.add_steps(wf, name, context.transport.code)
 
     # Clone to the URL desired for this workflow, at a step named "MT built".
     # After cloning, set the scenario as default so it is the one used by later steps
