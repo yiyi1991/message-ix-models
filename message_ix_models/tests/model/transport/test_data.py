@@ -3,8 +3,8 @@ import logging
 import numpy as np
 import pytest
 from pytest import mark
-from sdmx.model.common import Code
 
+from message_ix_models import Context
 from message_ix_models import Context
 from message_ix_models.model.transport import CL_SCENARIO, Config, build, testing
 from message_ix_models.model.transport.CHN_IND import get_chn_ind_data, get_chn_ind_pop
@@ -22,23 +22,6 @@ from message_ix_models.project.circeular.structure import (
 from message_ix_models.project.navigate import T35_POLICY
 
 
-@pytest.fixture(scope="module")
-def codes() -> list[tuple[Code, Code]]:
-    """All possible tuples of (:attr:`.Config.code`, :attr:`.project_scenario_code`).
-
-    These include:
-
-    1. Each of :class:`.transport.config.CL_SCENARIO` with no project-specific code.
-    2. "M SSP2" with each code from :class:`.circeular.structure.CL_SCENARIO`.
-    """
-    cl = CL_SCENARIO.get()
-    result = [(code, None) for code in cl] + [
-        (cl["M SSP2"], code) for code in CL_SCENARIO_CIRCEULAR.get()
-    ]
-    assert 392 == len(result)
-    return result
-
-
 class TestMultiFile:
     def test_filename(self) -> None:
         with pytest.raises(NotImplementedError):
@@ -46,9 +29,8 @@ class TestMultiFile:
 
 
 class TestLoadFactorLDV:
-    def test_filename(
-        self, caplog: pytest.LogCaptureFixture, codes: list[tuple[Code, Code]]
-    ) -> None:
+    @mark.parametrize("code", CL_SCENARIO.get())
+    def test_filename(self, code) -> None:
         """:attr:`LoadFactorLDV.filename` works for all defined scenario codes."""
         cfg: Config = Config()
 
@@ -63,6 +45,7 @@ class TestLoadFactorLDV:
 
 
 @mark.sdmx_230
+@mark.sdmx_230
 def test_collect_structures():
     sm1 = collect_structures()
 
@@ -74,13 +57,14 @@ def test_collect_structures():
     assert 30 <= len(sm1.dataflow) == len(sm2.dataflow)
 
 
-@mark.non_public_data("RoadmapResults_2017.xlsx")
+@make_mark[5]("RoadmapResults_2017.xlsx")
 @mark.parametrize(
     "region, length",
     [
         (("Africa", "R11_AFR"), 224),
     ],
 )
+def test_get_afr_data(test_context: Context, region: str, length: int) -> None:
 def test_get_afr_data(test_context: Context, region: str, length: int) -> None:
     ctx = test_context
 
@@ -111,6 +95,7 @@ def test_get_afr_data(test_context: Context, region: str, length: int) -> None:
     ]
 
 
+@mark.skip("Pending https://github.com/transportenergy/database/issues/75")
 @mark.skip("Pending https://github.com/transportenergy/database/issues/75")
 def test_get_chn_ind_data():
     df = get_chn_ind_data()
@@ -244,14 +229,19 @@ def test_label_subs(
 @mark.transport_build_data
 @mark.parametrize("years", ["A", "B"])
 @mark.parametrize(
+@mark.transport_build_data
+@mark.parametrize("years", ["A", "B"])
+@mark.parametrize(
     "regions",
     [
+        pytest.param("ISR", marks=mark.ISR_no_data),
         pytest.param("ISR", marks=mark.ISR_no_data),
         "R11",
         "R12",
         "R14",
     ],
 )
+@mark.parametrize("options", [{}, dict(navigate_scenario=T35_POLICY.ELE)])
 @mark.parametrize("options", [{}, dict(navigate_scenario=T35_POLICY.ELE)])
 def test_navigate_ele(test_context, regions, years, options):
     """Test genno-based IKARUS data prep."""

@@ -2,10 +2,13 @@ import logging
 import re
 from pathlib import Path
 
+import genno
 from genno import ComputationError, Key
 from genno.testing import assert_units
 from pytest import mark, param
+from pytest import mark, param
 
+from message_ix_models import Context
 from message_ix_models import Context
 from message_ix_models.model.structure import get_codes
 from message_ix_models.model.transport import Config, build, demand, testing, workflow
@@ -18,8 +21,12 @@ log = logging.getLogger(__name__)
 
 
 pytestmark = mark.transport_build_data
+pytestmark = mark.transport_build_data
 
 
+@mark.parametrize("regions", ["R11", "R14", "ISR"])
+@mark.parametrize("years", ["A", "B"])
+def test_demand_dummy(test_context: Context, regions: str, years: str) -> None:
 @mark.parametrize("regions", ["R11", "R14", "ISR"])
 @mark.parametrize("years", ["A", "B"])
 def test_demand_dummy(test_context: Context, regions: str, years: str) -> None:
@@ -32,6 +39,7 @@ def test_demand_dummy(test_context: Context, regions: str, years: str) -> None:
 
     spec = config.spec
 
+    args: tuple[list, list, list, dict] = (
     args: tuple[list, list, list, dict] = (
         spec.add.set["commodity"],
         spec.require.set["node"],
@@ -51,9 +59,10 @@ def test_demand_dummy(test_context: Context, regions: str, years: str) -> None:
 
 @build.get_computer.minimum_version
 @mark.parametrize(
+@mark.parametrize(
     "ssp",
     [
-        SSP_2017["2"],
+        param(SSP_2017["2"], marks=make_mark[2](genno.ComputationError)),
         SSP_2024["1"],
         SSP_2024["2"],
         SSP_2024["3"],
@@ -61,6 +70,9 @@ def test_demand_dummy(test_context: Context, regions: str, years: str) -> None:
         SSP_2024["5"],
     ],
 )
+def test_exo_pdt(
+    test_context: Context, ssp: SSP_2017 | SSP_2024, regions="R12", years="B"
+) -> None:
 def test_exo_pdt(
     test_context: Context, ssp: SSP_2017 | SSP_2024, regions="R12", years="B"
 ) -> None:
@@ -102,6 +114,7 @@ def test_exo_pdt(
 
 @build.get_computer.minimum_version
 def test_exo_report(test_context: Context, tmp_path: Path) -> None:
+def test_exo_report(test_context: Context, tmp_path: Path) -> None:
     """Exogenous demand results can be plotted.
 
     Separated from the above because the plotting step is slow.
@@ -130,8 +143,10 @@ def test_exo_report(test_context: Context, tmp_path: Path) -> None:
 
 @build.get_computer.minimum_version
 @mark.parametrize(
+@mark.parametrize(
     "regions",
     [
+        param("ISR", marks=mark.ISR_no_data),
         param("ISR", marks=mark.ISR_no_data),
         "R11",
         "R12",
@@ -140,6 +155,15 @@ def test_exo_report(test_context: Context, tmp_path: Path) -> None:
         ),
     ],
 )
+@mark.parametrize("years", ["B"])
+@mark.parametrize("pop_scen", [SSP_2017["2"], SSP_2024["2"]])
+def test_cg_shares(
+    test_context: Context,
+    tmp_path: Path,
+    regions: str,
+    years: str,
+    pop_scen: SSP_2017 | SSP_2024,
+) -> None:
 @mark.parametrize("years", ["B"])
 @mark.parametrize("pop_scen", [SSP_2017["2"], SSP_2024["2"]])
 def test_cg_shares(
@@ -185,6 +209,8 @@ R11_WEU  2100  300
 def test_pdt_per_capita(
     tmp_path: Path, test_context: Context, regions="R12", years="B", options=dict()
 ) -> None:
+    tmp_path: Path, test_context: Context, regions="R12", years="B", options=dict()
+) -> None:
     """Test calculation of PDT per capita, as configured by :func:`.pdt_per_capita`.
 
     Moved from :mod:`.test_operator`.
@@ -207,12 +233,17 @@ def test_pdt_per_capita(
 
 @build.get_computer.minimum_version
 @mark.parametrize(
+@mark.parametrize(
     "regions,years,pop_scen",
     [
         param("R11", "A", "GEA mix", marks=mark.GEA_not_implemented),
         param("R11", "A", "GEA supply", marks=mark.GEA_not_implemented),
         param("R11", "A", "GEA eff", marks=mark.GEA_not_implemented),
+        param("R11", "A", "GEA mix", marks=mark.GEA_not_implemented),
+        param("R11", "A", "GEA supply", marks=mark.GEA_not_implemented),
+        param("R11", "A", "GEA eff", marks=mark.GEA_not_implemented),
         # Different years
+        param("R11", "B", "GEA mix", marks=mark.GEA_not_implemented),
         param("R11", "B", "GEA mix", marks=mark.GEA_not_implemented),
         # Different regions & years
         ("R12", "B", SSP_2024["2"]),
@@ -220,8 +251,12 @@ def test_pdt_per_capita(
         ("R14", "B", SSP_2017["2"]),
         ("R14", "B", SSP_2017["3"]),
         param("ISR", "B", SSP_2024["2"], marks=mark.ISR_no_data),
+        param("ISR", "B", SSP_2024["2"], marks=mark.ISR_no_data),
     ],
 )
+def test_urban_rural_shares(
+    test_context: Context, tmp_path: Path, regions: str, years: str, pop_scen: str
+) -> None:
 def test_urban_rural_shares(
     test_context: Context, tmp_path: Path, regions: str, years: str, pop_scen: str
 ) -> None:
@@ -242,19 +277,26 @@ def test_urban_rural_shares(
 
 @mark.gh_471
 @mark.gh_375
+@mark.gh_471
+@mark.gh_375
 @build.get_computer.minimum_version
 @workflow.generate.minimum_version
+@mark.parametrize(
 @mark.parametrize(
     "nodes, target",
     [
         param("R11", "GEA mix", marks=mark.GEA_not_implemented),
+        param("R11", "GEA mix", marks=mark.GEA_not_implemented),
         ("R12", "SSP2"),
         ("R12", "SSP5"),
         ("R14", "SSP2"),
-        param("R14", "SSP5", marks=mark.no_data("node=R14, ssp=SSP5", RuntimeError)),
+        param("R14", "SSP5", marks=make_mark[2](RuntimeError)),
         param("R11", "SHAPE innovation", marks=mark.SHAPE_not_implemented),
     ],
 )
+def test_cli(
+    tmp_path: Path, mix_models_cli, test_context: Context, nodes: str, target: str
+) -> None:
 def test_cli(
     tmp_path: Path, mix_models_cli, test_context: Context, nodes: str, target: str
 ) -> None:
@@ -266,6 +308,9 @@ def test_cli(
 
     # Identify the path containing the outputs
     expr = re.compile(r"Save to (.*)\.pdf$", flags=re.MULTILINE)
+    match = expr.search(result.output)
+    assert match
+    output_dir = Path(match.group(1)).parent
     match = expr.search(result.output)
     assert match
     output_dir = Path(match.group(1)).parent

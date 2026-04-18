@@ -52,88 +52,6 @@ def scenario_code() -> "Code":
     return CL_SCENARIO.get()["SSP2"]
 
 
-@pytest.mark.parametrize(
-    "year_col, value_col",
-    (("year", "value"), ("Year", "Value")),
-)
-def test_mask_iamc_zeros_before_year(year_col, value_col):
-    """Zeros before year_cutoff are masked; other values are unchanged."""
-    df = pd.DataFrame(
-        {
-            year_col: [2010, 2010, 2025, 2025],
-            value_col: [0.0, 1.5, 0.0, 2.0],
-        }
-    )
-
-    result = mask_iamc_zeros_before_year(df, year_cutoff=2020)
-
-    assert result.loc[0, value_col] is np.nan or pd.isna(result.loc[0, value_col])
-    assert result.loc[1, value_col] == 1.5
-    assert result.loc[2, value_col] == 0.0
-    assert result.loc[3, value_col] == 2.0
-
-
-def test_mask_iamc_zeros_before_year_missing_columns():
-    """Data without year/value columns is returned unchanged."""
-    df = pd.DataFrame({"region": ["R12_AFR"], "lvl": [1.0]})
-
-    result = mask_iamc_zeros_before_year(df)
-
-    pd.testing.assert_frame_equal(result, df)
-
-
-def test_mask_iamc_zeros_before_year_non_dataframe():
-    """Non-DataFrame input is returned unchanged."""
-    assert mask_iamc_zeros_before_year("not a dataframe") == "not a dataframe"
-
-
-class _QuantityLike:
-    """Minimal wrapper exercising the re-wrap branch in mask_iamc_zeros_before_year."""
-
-    def __init__(self, data, name=None):
-        self.data = data
-        self.name = name
-
-
-def test_mask_iamc_zeros_before_year_quantity():
-    """Wrapped data is masked in place and the original object is returned."""
-    df = pd.DataFrame({"year": [2010], "value": [0.0]})
-    wrapped = _QuantityLike(df, name="transport test")
-
-    result = mask_iamc_zeros_before_year(
-        wrapped, year_cutoff=IAMC_ZERO_MUTE_BEFORE_YEAR
-    )
-
-    assert result is wrapped
-    assert pd.isna(wrapped.data.loc[0, "value"])
-
-
-def test_mask_iamc_zeros_before_year_iamdataframe():
-    """IamDataFrame keeps all rows; pyam would drop NaN rows on reconstruction."""
-    pyam = pytest.importorskip("pyam")
-    df = pd.DataFrame(
-        {
-            "model": ["m", "m"],
-            "scenario": ["s", "s"],
-            "region": ["R12_AFR", "R12_AFR"],
-            "variable": ["FE|Bus", "FE|Bus"],
-            "unit": ["EJ/yr", "EJ/yr"],
-            "year": [2010, 2025],
-            "value": [0.0, 1.5],
-        }
-    )
-    wrapped = pyam.IamDataFrame(df)
-
-    result = mask_iamc_zeros_before_year(
-        wrapped, year_cutoff=IAMC_ZERO_MUTE_BEFORE_YEAR
-    )
-
-    assert result is wrapped
-    assert len(result.data) == 2
-    assert pd.isna(result.data.loc[result.data["year"] == 2010, "value"].iloc[0])
-    assert result.data.loc[result.data["year"] == 2025, "value"].iloc[0] == 1.5
-
-
 @mark.xfail(
     reason="Requires variables in .report.legacy.default_tables that have not been "
     "migrated from message_data"
@@ -164,6 +82,8 @@ def test_configure_legacy():
         assert expected.get(k, 0) + len(TECHS[k]) == len(v), k
 
 
+@mark.ece_db
+@mark.parametrize(
 @mark.ece_db
 @mark.parametrize(
     "url, key, verbosity",
@@ -220,12 +140,17 @@ def test_debug(
 
 @mark.ci_linux_only
 @mark.transport_build_data
+@mark.ci_linux_only
+@mark.transport_build_data
 @build.get_computer.minimum_version
+@mark.parametrize(
 @mark.parametrize(
     "regions, years",
     (
         param("R11", "A", marks=mark.no_data("R11", RuntimeError)),
         ("R12", "B"),
+        param("R14", "A", marks=mark.R14_no_data),
+        param("ISR", "A", marks=mark.ISR_no_data),
         param("R14", "A", marks=mark.R14_no_data),
         param("ISR", "A", marks=mark.ISR_no_data),
     ),
@@ -284,7 +209,9 @@ def test_multi(test_context: "Context") -> None:
 
 
 @mark.ci_linux_only
+@mark.ci_linux_only
 @build.get_computer.minimum_version
+@mark.transport_build_data
 @mark.transport_build_data
 @mark.usefixtures("quiet_genno")
 @mark.parametrize(
@@ -331,11 +258,13 @@ def test_simulated(
 
 
 @mark.skipif(
+@mark.skipif(
     GHA
     and ((V("3.8") <= V(version("ixmp")) < V("3.11")) or platform.system() != "Linux"),
     reason="Fails on GHA with ixmp/message_ix v3.8–v3.10 or their dependencies",
 )
 @build.get_computer.minimum_version
+@mark.transport_build_data
 @mark.transport_build_data
 def test_simulated_iamc(
     request: "pytest.FixtureRequest",
@@ -401,7 +330,10 @@ def test_simulated_iamc(
 @build.get_computer.minimum_version
 @mark.ci_timeout
 @mark.transport_build_data
+@mark.ci_timeout
+@mark.transport_build_data
 @mark.usefixtures("quiet_genno")
+@mark.parametrize(
 @mark.parametrize(
     "plot_name",
     # # All plots

@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 #: Common marks for :mod:`.transport` tests. These are automatically merged with and
 #: made available in the same manner as :data:`message_ix_models.testing.MARK`, for
 #: instance :py:`@pytest.mark.R12_only`.
-MARK: dict[str, pytest.MarkDecorator] = {
+MARK: dict[Hashable, pytest.MarkDecorator] = {
     "GEA_not_implemented": pytest.mark.xfail(
         reason="Not implemented with GEA input data"
     ),
@@ -39,6 +39,14 @@ MARK: dict[str, pytest.MarkDecorator] = {
         raises=FileNotFoundError,
         reason="Missing ISR/mer-to-ppp.csv + not supported by MaybeAdaptR11Source",
     ),
+    "R12_only": pytest.mark.skip(
+        reason="Currently only possible with node=R12 input data/config",
+    ),
+    "R14_no_data": pytest.mark.xfail(reason="Missing R14 input data/config"),
+    "SHAPE_not_implemented": pytest.mark.xfail(
+        reason="Not implemented with SHAPE input data"
+    ),
+    "transport_build_data": pytest.mark.usefixtures(
     "R12_only": pytest.mark.skip(
         reason="Currently only possible with node=R12 input data/config",
     ),
