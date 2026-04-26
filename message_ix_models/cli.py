@@ -161,7 +161,6 @@ submodules = [
     "message_ix_models.model.bmt.cli",
     "message_ix_models.model.buildings.cli",
     "message_ix_models.model.cli",
-    "message_ix_models.model.material.cli",
     "message_ix_models.model.structure",
     "message_ix_models.model.transport.cli",
     "message_ix_models.model.water.cli",
