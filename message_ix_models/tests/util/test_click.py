@@ -36,10 +36,10 @@ def test_default_path_cb(session_context, mix_models_cli):
     assert result.output.startswith(f"{expected}\n")
 
 
-def test_regions(mix_models_cli):
-    """--regions=… used on both group and a command within the group.
+def test_regions(mix_models_cli) -> None:
+    """--regions=… redundantly declared on a group and its subcommand.
 
-    If the option is not provided to the inner command, the value given to the outer
+    If the option is not provided to the subcommand, the value given to the parent
     group should persist.
     """
 
@@ -62,6 +62,26 @@ def test_regions(mix_models_cli):
 
     # Value given to the outer group is stored and available to the inner command
     assert "ZMB" == result.output.strip()
+
+
+def test_scenario_param_preserves_outer_value(mix_models_cli) -> None:
+    """An unset subcommand --ssp does not overwrite the parent command's value."""
+
+    @click.group()
+    @scenario_param("--ssp", default="SSP2")
+    def outer():
+        pass
+
+    @outer.command()
+    @scenario_param("--ssp")
+    @click.pass_obj
+    def inner(context):
+        print(context.ssp)
+
+    with temporary_command(cli_test_group, outer):
+        result = mix_models_cli.assert_exit_0(["_test", "outer", "--ssp=SSP1", "inner"])
+
+    assert "SSP1" == result.output.strip()
 
 
 @pytest.mark.parametrize(
