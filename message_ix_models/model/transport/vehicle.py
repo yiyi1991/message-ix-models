@@ -16,7 +16,7 @@ from .util import COMMON, DIMS
 if TYPE_CHECKING:
     from genno import Computer
 
-    from message_ix_models.model.transport import Config
+    from message_ix_models import ScenarioInfo
 
 log = logging.getLogger(__name__)
 
@@ -65,8 +65,9 @@ def prepare_computer(c: "Computer") -> None:
     # Add data for MESSAGE parameter ``technical_lifetime``
     tl = "technical_lifetime"
     # Convert to MESSAGE data structure
+    dims = DIMS | dict(node_loc="n", year_vtg="y")
     collect(
-        f"{tl}::vehicle", "as_message_df", K.exo.lifetime, name=tl, dims=DIMS, common={}
+        f"{tl}::vehicle", "as_message_df", K.exo.lifetime, name=tl, dims=dims, common={}
     )
 
     # commented: handle data from stock-cap.csv; currently unused.
@@ -101,14 +102,15 @@ def capacity_factor(c: "Computer", mode: str) -> None:
     collect(f"{cf}::{mode}", "as_message_df", prev, name=cf, dims=dims, common=COMMON)
 
 
-#: 2-:class:`tuple` of keys for each :data:`MODE`:
+#: 3-:class:`tuple` of keys for each :data:`MODE`:
 #:
 #: 1. Key for total service activity, dimensions (n, y) or (n, y, t).
 #: 2. Key for load factor or occupancy.
+#: 3. Key for average age of stock as of the initial period.
 STOCK_KEYS = {
-    "F": (K.fv, K.exo.load_factor_f),
-    "P ex LDV": (K.pdt_nyt, K.exo.load_factor_p),
-    "LDV": (K.ldv_ny + "total", K.exo.load_factor_ldv),
+    "F": (K.fv, K.exo.load_factor_f, K.exo.lifetime),
+    "P ex LDV": (K.pdt_nyt, K.exo.load_factor_p, K.exo.lifetime),
+    "LDV": (K.ldv_ny + "total", K.exo.load_factor_ldv, K.exo.age_ldv),
 }
 
 
@@ -125,9 +127,7 @@ def stock(c: "Computer", mode: str, *, margin: float = 0.2) -> None:
         ``bound_new_capacity_{lo,up}``, this relaxes the resulting constraints on LDV
         technologies in the first model period.
     """
-    context = c.graph["context"]
-    config: "Config" = context.transport
-    info = config.base_model_info
+    info: "ScenarioInfo" = c.graph["context"].transport.base_model_info
 
     k = Keys(
         stock=f"stock:n-t-y:{mode}",
@@ -136,7 +136,10 @@ def stock(c: "Computer", mode: str, *, margin: float = 0.2) -> None:
     )
 
     # Retrieve starting keys specific to `mode`
-    k.total_activity, k.load_factor = STOCK_KEYS[mode]
+    # - Total activity
+    # - Load factor
+    # - Age of vehicles as of the model base period
+    k.total_activity, k.load_factor, k.age = STOCK_KEYS[mode]
 
     # - Divide total activity by (1) annual driving distance per vehicle and (2) load
     #   factor (occupancy) to obtain implied stock.
@@ -147,32 +150,18 @@ def stock(c: "Computer", mode: str, *, margin: float = 0.2) -> None:
     c.add(k.stock[1], "div", k.stock[0], k.load_factor)
     c.add(k.stock[2] / "y", "select", k.stock[1], "y0::coord", sums=True)
 
-    if mode == "LDV":
-        # Multiply by exogenous technology shares to obtain stock with (n, t) dimensions
-        c.add(k.stock, "mul", k.stock[2] / ("t", "y"), K.exo.t_share_ldv)
+    # Multiply by exogenous technology shares to obtain stock with (n, t) dimensions
+    c.add(k.stock, "mul", k.stock[2] / ("t", "y"), K.exo.cap_share_t)
 
-        # Age of vehicles as of the model base period
-        k.age = K.exo.age_ldv
-
-        # Subset of values from ldv-new-capacity.csv for 1 period after the model base
-        # period (e.g. 2025 for 2020 base period)
-        c.add(k.sales["exo"], "select", K.exo.cap_new_ldv, K.coord.yv_1plus)
-    else:
-        # Total stock: no data flow for exogenous technology shares
-        c.add(k.stock, k.stock[2])
-
-        k.age = K.exo.lifetime
-
-        # Remainder not yet implemented for non-LDV
-        return
-
+    # Select age values for y=y₀ only
+    c.add(k.age["y0"], "select", k.age, K.coord.y_0)
     # Fraction of sales in preceding years (annual, not MESSAGE 'year' referring to
     # multi-year periods)
-    c.add(k.sales_nty[0], "sales_fraction_annual", k.age)
+    c.add(k.sales_nty[0], "sales_fraction_annual", k.age["y0"])
     # Absolute sales in preceding years
     c.add(k.sales_nty[1], "mul", k.stock, k.sales_nty[0], 1.0 + margin)
     # Aggregate to model periods; total sales across the period
-    c.add(k.sales_nty[2], "aggregate", k.sales_nty[1], K.y_.annual_agg, keep=False)
+    c.add(k.sales_nty[2], "aggregate", k.sales_nty[1], K.agg.y_annual, keep=False)
     # Divide by duration_period for the equivalent of CAP_NEW/historical_new_capacity
     c.add(k.sales_nty, "div", k.sales_nty[2], "duration_period:y")
 
@@ -202,6 +191,12 @@ def stock(c: "Computer", mode: str, *, margin: float = 0.2) -> None:
     c.add(k.sales[2], "select", k.sales[0], indexers=dict(yv=info.Y))
     indexers = dict(t=["ICE_conv"])
     c.add(k.sales[3], "select", k.sales[2], indexers=indexers, inverse=True)
+
+    # Subset of values from new-capacity.csv for 1 period after the model base period
+    # (e.g. 2025 for 2020 base period)
+    c.add(k.sales["exo"], "select", K.exo.cap_new, K.coord.yv_1plus)
+
+    # Concatenate to previous
     c.add(k.sales[4], "concat", k.sales[3], k.sales["exo"])
 
     for kw["name"] in map("bound_new_capacity_{}".format, ("lo", "up")):
