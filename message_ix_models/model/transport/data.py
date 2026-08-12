@@ -877,6 +877,19 @@ In particular, values up to 2015 (the final period before |y0|) are used for
     units="Mvehicle",
 )
 
+cap_share_t = _input_dataflow(
+    path="cap-share-t",
+    key="tech share:n-t:T+exo",
+    name="Share of first period stock by technology",
+    description="""
+- Values must sum to 1 across the 't' dimension for each unique combination of other
+  dimensions.
+- Technology codes annotated "historical-only: True" (e.g. ICE_L_ptrp) must be omitted
+  or have zero values. If not, incompatible/infeasible constraint values are created.
+""",
+    units="dimensionless",
+)
+
 class_ldv = _input_dataflow(
     path="ldv-class",
     dims=("n", "vehicle_class"),
@@ -1115,17 +1128,6 @@ stock_cap = _input_dataflow(
     units="vehicle / passenger",
 )
 
-t_share_ldv = _input_dataflow(
-    path="ldv-t-share",
-    key="tech share:n-t:ldv+exo",
-    name="Share of total stock for LDV technologies",
-    description="""
-- Values must sum to 1 across the 't' dimension.
-- Technology codes annotated "historical-only: True" (e.g. ICE_L_ptrp) must be omitted
-  or have zero values. If not, incompatible/infeasible constraint values are created.
-""",
-    units="dimensionless",
-)
 
 # Output data flows (for reporting / model integration)
 
