@@ -211,6 +211,7 @@ Operators
       node_glb
       nodes_world_agg
       remove_ts
+      remove_zeros
       select_allow_empty
       select_expand
       share_curtailment
