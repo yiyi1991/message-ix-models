@@ -82,6 +82,27 @@ Population and GDP projections are inherited from the underlying MESSAGEix-GLOBI
 Together with the associated SSP narrative, these projections determine the development of material demand and the services that require material stocks.
 Demand assumptions are combined with historical calibration data and technology-specific parameters.
 
+Material demand is projected differently by sector, then imposed as exogenous
+product demand (except for power-plant materials):
+
+
+* **Steel, cement, and aluminum.** Finished-material demand is projected from
+  regional GDP and population pathways under the selected SSP, using
+  saturating intensity relationships calibrated to historical consumption.
+  Base-year levels are aligned to industry statistics; future levels grow with
+  income and population rather than from a lifetime cohort model of in-use
+  stocks.
+* **Ammonia.** Fertilizer demand is taken from the soft-linked GLOBIOM nitrogen
+  fertilizer pathway. Residual non-fertilizer ammonia demand is projected with
+  SSP-dependent income elasticities. Ammonia is treated as dissipative, so no
+  in-use stock accumulates.
+* **Methanol and high-value chemicals.** Chemical-product demand is projected
+  with SSP-dependent income elasticities applied to base-year demand, again as
+  exogenous product demand rather than stock-driven demand.
+* **Power-sector materials.** Demand is endogenous: material requirements follow
+  from the optimized power-generation mix through technology-specific
+  construction and end-of-life intensities.
+
 System definition
 =================
 
